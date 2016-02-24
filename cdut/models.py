@@ -1,8 +1,71 @@
-#与数据库操作相关，存入或读取数据时用到这个，当然用不到数据库的时候 你可以不使用
 from django.db import models
 
 
-class Notice(models.Model):
-    title = models.TextField()
+# 用户表
+class User(models.Model):
+    user_id = models.AutoField(primary_key=True)
+    device_id = models.CharField(max_length=64)
+    device_platform = models.CharField(blank=True, unique=False, max_length=16)
+    device_model = models.CharField(blank=True, unique=False, max_length=16)
+    join_time = models.DateTimeField(auto_now_add=True)
+    last_visit_time = models.DateTimeField(auto_now=True)
+    associate_article_ids = models.TextField(blank=True, unique=False)
+
+
+# 评论表
+class Comment(models.Model):
+    comment_id = models.AutoField(primary_key=True)
+    article = models.ForeignKey('Article', unique=False)
+    user = models.ForeignKey('User')
+    datetime = models.DateTimeField(unique=False)
+    tool = models.CharField(blank=True, unique=False, max_length=16)
+    message = models.TextField(unique=False)
+
+
+# 访问次数表
+class VisitNum(models.Model):
+    visitnum_id = models.AutoField(primary_key=True)
+    article = models.ForeignKey('Article')
+    pv = models.IntegerField(default=0, unique=False)
+    uv = models.IntegerField(default=0, unique=False)
+
+
+# 文章类型表
+class Type(models.Model):
+    type_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=8)
+
+
+# 文章来源表
+class Source(models.Model):
+    source_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=16)
+    tag = models.CharField(max_length=8)
+
+
+# 文章附件表
+class File(models.Model):
+    file_id = models.AutoField(primary_key=True)
+    content = models.ForeignKey('Content')
     url = models.URLField()
-    time = models.TextField()
+    name = models.CharField(blank=True, unique=False, max_length=64)
+    type = models.CharField(unique=False, max_length=8)
+
+
+# 文章数据表
+class Article(models.Model):
+    article_id = models.AutoField(primary_key=True)
+    source = models.ForeignKey('Source', unique=False)
+    type = models.ForeignKey('Type', unique=False)
+    title = models.TextField()
+    origin_url = models.URLField()
+    author = models.CharField(blank=True, unique=False, max_length=32)
+    addtime = models.DateTimeField(unique=False)
+
+
+# 文章内容表
+class Content(models.Model):
+    content_id = models.AutoField(primary_key=True)
+    article = models.ForeignKey('Article')
+    content = models.TextField(blank=True)
+    datetime = models.DateTimeField()

@@ -13,14 +13,13 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-#网址入口，关联到对应的views.py中的一个函数（或者generic类），访问网址就对应一个函数
 from django.conf.urls import url
 from django.contrib import admin
 
 from cdut import views
 
 urlpatterns = [
-    url(r'^', views.msgs),
+    # url(r'^', views.msgs),
     url(r'^$', views.index),
     url(r'^admin/', admin.site.urls),
 ]
