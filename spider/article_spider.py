@@ -1,13 +1,13 @@
 import re
 
-import datetime
 import requests
 from bs4 import BeautifulSoup
 
 from cdut.models import Article, Source, Type
+from utils.util import stamp_format
 
 
-class DefaultSpider:
+class AIndexSpider:
     def __init__(self, url):
         self.__url = url
         self.__pattern = re.compile(r'news/(.{10})')
@@ -29,9 +29,7 @@ class DefaultSpider:
         if Article.objects.filter(origin_url=str(item.a['href']).strip()):
             print('has existed')
             return None
-        itime = datetime.datetime.fromtimestamp(
-            int(re.findall(self.__pattern, str(item.a['href']))[0])
-        ).strftime('%Y-%m-%d %H:%M:%S')
+        itime = stamp_format(re.findall(self.__pattern, str(item.a['href']))[0])
         artcle = Article(
             title=str(item.a['title']).strip(),
             origin_url=str(item.a['href']).strip(),
