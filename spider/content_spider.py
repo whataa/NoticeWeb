@@ -5,18 +5,43 @@ import requests
 from bs4 import BeautifulSoup
 
 from cdut.models import Content, File, Article
-from utils.util import stamp_format, str_to_time
+from utils.util import stamp_format, str_to_time, get_filetype
 
 
-class CIndexSpider:
-    def __init__(self, url, aid):
-        self.__url = url
-        self.__aid = aid
-        self.__pt = re.compile(r'：(.*)')
+class CBase:
+    def __init__(self):
         self.__content = []
+        self.__datetime = None
         self.file_url = None
         self.file_name = None
         self.file_type = None
+
+    def __save(self, aid):
+        if Content.objects.filter(article=aid):
+            print('content has existed')
+            return None
+        content = Content(
+            article=Article.objects.get(article_id=self.__aid),
+            content=self.__content,
+            datetime=str_to_time(self.__datetime)
+        )
+        content.save()
+        return content.content_id
+
+    def __savefile(self, cid):
+        File(
+            content=Content.objects.get(content_id=cid),
+            url=self.file_url,
+            name=self.file_name,
+            type=self.file_type
+        ).save()
+
+class CIndexSpider(CBase):
+    def __init__(self, url, aid):
+        CBase.__init__(self)
+        self.__url = url
+        self.__aid = aid
+        self.__pt = re.compile(r'：(.*)')
 
 
     def start(self):
@@ -40,7 +65,7 @@ class CIndexSpider:
                     if p.a:
                         self.file_url = p.a['href']
                         self.file_name = str(p.text).strip().replace('\n', '').replace('附件：', '').replace('下载：', '')
-                        self.file_type = self.file_url.split('.')[-1]
+                        self.file_type = get_filetype(self.file_url)
                     continue
                 if p.a:
                     self.__content.append({'href': p.a['href']})
@@ -58,22 +83,71 @@ class CIndexSpider:
         if content_id and self.file_url:
             self.__savefile(content_id)
 
-    def __save(self, aid):
-        if Content.objects.filter(article=self.__aid):
-            print('content has existed')
-            return None
-        content = Content(
-            article=Article.objects.get(article_id=self.__aid),
-            content=self.__content,
-            datetime=str_to_time(self.__datetime)
-        )
-        content.save()
-        return content.content_id
 
-    def __savefile(self, cid):
-        File(
-            content=Content.objects.get(content_id=cid),
-            url=self.file_url,
-            name=self.file_name,
-            type=self.file_type
-        ).save()
+
+class CAaoSpider:
+    def __init__(self,url,aid):
+        self.__url = url
+        self.__aid = aid
+        self.__pt = re.compile(r'/> (.*) <a')
+        self.__content = []
+        self.file_url = None
+        self.file_name = None
+        self.file_type = None
+
+    def start(self):
+        pass
+        rp = requests.get(self.__url)
+        soup = BeautifulSoup(rp.content, 'html.parser')
+        #内容
+        content = soup.find('div', id='text')
+        for p in content.p.find_all('p'):
+            if not p.text:
+                continue
+            if not str(p.text).strip():
+                continue
+            if p.has_attr('text-align'):
+                self.__content.append({'content':str(p.text).strip().replace('\n',''), 'align':p['text-align']})
+                continue
+            self.__content.append({'content':str(p.text).strip().replace('\n','')})
+        #表格
+        if content.p.find('table'):
+            self.__content.append({'table':content.p.table})
+        #附件
+        if content.p.find('a'):
+            self.file_name = re.findall(self.__pt, str(content.p))[0]
+            #移除链接前的.符号
+            self.file_url = r'http://www.aao.cdut.edu.cn/aao' + content.p.a['href'][1:]
+            self.file_type = get_filetype(self.file_url)
+
+
+    def __save(self):
+        pass
+    def __savefile(self):
+        pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
