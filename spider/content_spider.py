@@ -9,13 +9,16 @@ from utils.util import stamp_format, str_to_time, get_filetype
 
 
 class CBase:
-    def __init__(self):
-        self.__content = []
-        self.__datetime = None
-        self.file_url = None
-        self.file_name = None
-        self.file_type = None
+    def __init__(self, url, aid):
+        self.__url = url    #文章URL
+        self.__aid = aid    #对应的Article的ID
+        self.__content = [] #内容
+        self.__datetime = None  #发布时间
+        self.file_url = None    #附件URL
+        self.file_name = None   #附件名
+        self.file_type = None   #附件类型
 
+    #保存内容
     def __save(self, aid):
         if Content.objects.filter(article=aid):
             print('content has existed')
@@ -28,6 +31,7 @@ class CBase:
         content.save()
         return content.content_id
 
+    #保存附件
     def __savefile(self, cid):
         File(
             content=Content.objects.get(content_id=cid),
@@ -38,11 +42,8 @@ class CBase:
 
 class CIndexSpider(CBase):
     def __init__(self, url, aid):
-        CBase.__init__(self)
-        self.__url = url
-        self.__aid = aid
+        CBase.__init__(self,url,aid)
         self.__pt = re.compile(r'：(.*)')
-
 
     def start(self):
         rp = requests.get(self.__url)
@@ -85,15 +86,10 @@ class CIndexSpider(CBase):
 
 
 
-class CAaoSpider:
+class CAaoSpider(CBase):
     def __init__(self,url,aid):
-        self.__url = url
-        self.__aid = aid
+        CBase.__init__(self,url,aid)
         self.__pt = re.compile(r'/> (.*) <a')
-        self.__content = []
-        self.file_url = None
-        self.file_name = None
-        self.file_type = None
 
     def start(self):
         pass

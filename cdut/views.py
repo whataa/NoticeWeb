@@ -1,6 +1,6 @@
 from django.http.response import HttpResponse
 
-from spider.article_spider import AIndexSpider
+from spider.article_spider import AIndexSpider, AAaoSpider
 from spider.content_spider import CIndexSpider
 from spider.static import entry_url
 
@@ -13,6 +13,11 @@ def index(request):
             contentspider = CIndexSpider(spider.aref[i], spider.aid[i])
             contentspider.start()
     return HttpResponse('欢迎!!!')
+
+def aao(request):
+    spider = AAaoSpider(r'http://www.aao.cdut.edu.cn/aao/aao.php?sort=389&sorid=391&from=more')
+    spider.start()
+    return HttpResponse('aao')
 
 def msgs(request):
     pass

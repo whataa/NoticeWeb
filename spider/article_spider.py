@@ -8,22 +8,23 @@ from utils.util import stamp_format, date_to_time
 
 
 class ABase:
-    def __init__(self):
+    def __init__(self, url):
+        self.url = url
         self.aid = []
         self.aref = []
 
-    def is_article_exists(url):
+    def is_article_exists(self, url):
         if Article.objects.filter(origin_url=url):
             return True
         return False
 
 class AIndexSpider(ABase):
     def __init__(self, url):
-        self.__url = url
+        ABase.__init__(self,url)
         self.__pattern = re.compile(r'news/(.{10})')
 
     def start(self):
-        rp = requests.get(self.__url)
+        rp = requests.get(self.url)
         soup = BeautifulSoup(rp.content, 'html.parser')
         for item in soup.find_all('li'):
             id = self.__save(item)
@@ -50,10 +51,10 @@ class AIndexSpider(ABase):
 
 class AAaoSpider(ABase):
     def __init__(self, url):
-        self.__url = url
-        pass
+        ABase.__init__(self,url)
+
     def start(self):
-        rp = requests.get(self.__url)
+        rp = requests.get(self.url)
         soup = BeautifulSoup(rp.content, 'html.parser')
         for item in soup.find_all('img', alt='news'):
             subItem = item.find_next_sibling()
