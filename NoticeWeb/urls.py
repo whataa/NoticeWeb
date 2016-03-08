@@ -19,6 +19,7 @@ from django.contrib import admin
 from cdut import views
 
 urlpatterns = [
+    url(r'^content',views.content),
     url(r'^aao',views.aao),
     # url(r'^', views.msgs),
     url(r'^$', views.index),

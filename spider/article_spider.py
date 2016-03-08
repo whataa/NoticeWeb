@@ -10,13 +10,37 @@ from utils.util import stamp_format, date_to_time
 class ABase:
     def __init__(self, url):
         self.url = url
+        self.title = None
+        self.origin_url = None
+        self.author = None
+        self.datetime = None
         self.aid = []
         self.aref = []
 
-    def is_article_exists(self, url):
+    @staticmethod
+    def is_article_exists(url):
         if Article.objects.filter(origin_url=url):
             return True
         return False
+
+    def save(self, source, type):
+        if ABase.is_article_exists(self.origin_url):
+            id = Article.objects.get(origin_url=self.origin_url).article_id
+            print('existed: ' + str(id))
+            return id
+        article = Article(
+            title=self.title,
+            origin_url=self.origin_url,
+            author=self.author,
+            addtime=self.datetime,
+            source=Source.objects.get(source_id=source),
+            type=Type.objects.get(type_id=type),
+        )
+        article.save()
+        return article.article_id
+
+    def start(self):
+        pass
 
 class AIndexSpider(ABase):
     def __init__(self, url):
@@ -27,27 +51,16 @@ class AIndexSpider(ABase):
         rp = requests.get(self.url)
         soup = BeautifulSoup(rp.content, 'html.parser')
         for item in soup.find_all('li'):
-            id = self.__save(item)
+            self.title = str(item.a['title']).strip()
+            self.origin_url = str(item.a['href']).strip()
+            self.author = ''
+            self.datetime = stamp_format(re.findall(self.__pattern, str(item.a['href']))[0])
+            id = self.save(1,1)
             if not id:
                 print('save faild')
                 continue
             self.aid.append(id)
-            self.aref.append(str(item.a['href']).strip())
-
-    def __save(self, item):
-        if self.is_article_exists(str(item.a['href']).strip()):
-            print('Acdut has existed')
-            return None
-        itime = stamp_format(re.findall(self.__pattern, str(item.a['href']))[0])
-        artcle = Article(
-            title=str(item.a['title']).strip(),
-            origin_url=str(item.a['href']).strip(),
-            addtime=itime,
-            source=Source.objects.get(source_id=1),
-            type=Type.objects.get(type_id=1),
-        )
-        artcle.save()
-        return artcle.article_id
+            self.aref.append(self.origin_url)
 
 class AAaoSpider(ABase):
     def __init__(self, url):
@@ -56,28 +69,16 @@ class AAaoSpider(ABase):
     def start(self):
         rp = requests.get(self.url)
         soup = BeautifulSoup(rp.content, 'html.parser')
+
         for item in soup.find_all('img', alt='news'):
             subItem = item.find_next_sibling()
-            id = self.__save(subItem)
+            self.title = str(subItem['title']).strip()
+            self.origin_url = r'http://www.aao.cdut.edu.cn' + str(subItem['href']).strip()
+            self.author = ''
+            self.datetime = date_to_time(str(subItem.span.string).strip().replace('(', '').replace(')', ''))
+            id = self.save(3,2)
             if not id:
                 print('save faild')
                 continue
             self.aid.append(id)
-            self.aref.append(str(item.a['href']).strip())
-
-    def __save(self,subItem):
-        iurl = r'http://www.aao.cdut.edu.cn' + str(subItem['href']).strip()
-        if self.is_article_exists(iurl):
-            print('Aaao has existed')
-            return None
-        itime = date_to_time(str(subItem.span.string).strip().replace('(', '').replace(')', ''))
-        ititle = str(subItem['title']).strip()
-        artcle = Article(
-            title=ititle,
-            origin_url=iurl,
-            addtime=itime,
-            source=Source.objects.get(source_id=3),
-            type=Type.objects.get(type_id=2),
-        )
-        artcle.save()
-        return artcle.article_id
+            self.aref.append(self.origin_url)
