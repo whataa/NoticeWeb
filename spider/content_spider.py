@@ -33,7 +33,7 @@ class CBase:
         content = Content(
             article=Article.objects.get(article_id=self.aid),
             content=self.content,
-            datetime=str_to_time(self.datetime)
+            datetime=self.datetime
         )
         content.save()
         if self.author:
@@ -68,7 +68,7 @@ class CIndexSpider(CBase):
         # 发布者
         self.author = re.findall(self.__pt, str(soup.find('span', class_='puber').text).replace('\n', ''))[0]
         # 发布时间
-        self.datetime = re.findall(self.__pt, str(soup.find('span', class_='pubtime').text).replace('\n', ''))[0]
+        self.datetime = str_to_time(re.findall(self.__pt, str(soup.find('span', class_='pubtime').text).replace('\n', ''))[0])
         content = soup.find('div', id='contentdisplay')
         for p in soup.find_all('p', class_='MsoNormal'):
             # 图片链接
@@ -109,6 +109,9 @@ class CAaoSpider(CBase):
         self.__pt = re.compile(r'/> (.*) <a')
 
     def start(self):
+        if CBase.is_content_exists(self.aid):#!!!!!!!!!!浪费一晚上，参数传错为url！！！
+            print('content exists')
+            return
         rp = requests.get(self.url)
         soup = BeautifulSoup(rp.content, 'html.parser')
         #内容
@@ -124,14 +127,20 @@ class CAaoSpider(CBase):
             self.content.append({'content':str(p.text).strip().replace('\n','')})
         #表格
         if content.p.find('table'):
-            self.content.append({'table':content.p.table})
+            self.content.append({'table':str(content.p.table)})
         #附件
         if content.p.find('a'):
             self.file_name = re.findall(self.__pt, str(content.p))[0]
             #移除链接前的.符号
             self.file_url = r'http://www.aao.cdut.edu.cn/aao' + content.p.a['href'][1:]
             self.file_type = get_filetype(self.file_url)
+        self.author = '教务处'
 
+        self.content = json.dumps(self.content, ensure_ascii=False)
+
+        content_id = self.save(self.aid)
+        if content_id and self.file_url:
+            self.savefile(content_id)
 
 
 

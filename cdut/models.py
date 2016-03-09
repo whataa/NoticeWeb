@@ -10,6 +10,8 @@ class User(models.Model):
     join_time = models.DateTimeField(auto_now_add=True)
     last_visit_time = models.DateTimeField(auto_now=True)
     associate_article_ids = models.TextField(blank=True, unique=False)
+    def __str__(self):
+        return self.device_id
 
 
 # 评论表
@@ -20,6 +22,8 @@ class Comment(models.Model):
     datetime = models.DateTimeField(unique=False)
     tool = models.CharField(blank=True, unique=False, max_length=16)
     message = models.TextField(unique=False)
+    def __str__(self):
+        return self.message
 
 
 # 访问次数表
@@ -28,12 +32,16 @@ class VisitNum(models.Model):
     article = models.ForeignKey('Article')
     pv = models.IntegerField(default=0, unique=False)
     uv = models.IntegerField(default=0, unique=False)
+    def __str__(self):
+        return ''+self.visitnum_id
 
 
 # 文章类型表
 class Type(models.Model):
     type_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=8)
+    def __str__(self):
+        return self.name
 
 
 # 文章来源表
@@ -41,6 +49,8 @@ class Source(models.Model):
     source_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=16)
     tag = models.CharField(max_length=8)
+    def __str__(self):
+        return self.name
 
 
 # 文章附件表
@@ -50,6 +60,8 @@ class File(models.Model):
     url = models.URLField()
     name = models.CharField(blank=True, unique=False, max_length=64)
     type = models.CharField(unique=False, max_length=8)
+    def __str__(self):
+        return self.name
 
 
 # 文章数据表
@@ -61,6 +73,8 @@ class Article(models.Model):
     origin_url = models.URLField()
     author = models.CharField(blank=True, unique=False, max_length=32)
     addtime = models.DateTimeField(unique=False)
+    def __str__(self):
+        return self.title
 
 
 # 文章内容表
@@ -68,4 +82,6 @@ class Content(models.Model):
     content_id = models.AutoField(primary_key=True)
     article = models.ForeignKey('Article')
     content = models.TextField(blank=True)
-    datetime = models.DateTimeField()
+    datetime = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return self.content
