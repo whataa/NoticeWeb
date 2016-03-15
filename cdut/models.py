@@ -2,6 +2,9 @@ from django.db import models
 
 
 # 用户表
+from django.utils import timezone
+
+
 class User(models.Model):
     user_id = models.AutoField(primary_key=True)
     device_id = models.CharField(max_length=64)
@@ -82,6 +85,6 @@ class Content(models.Model):
     content_id = models.AutoField(primary_key=True)
     article = models.ForeignKey('Article')
     content = models.TextField(blank=True)
-    datetime = models.DateTimeField(auto_now_add=True)
+    datetime = models.DateTimeField(default=timezone.now)
     def __str__(self):
         return self.content

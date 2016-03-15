@@ -14,8 +14,8 @@ class ABase:
         self.origin_url = None
         self.author = None
         self.datetime = None
-        self.aid = []
-        self.aref = []
+        # 文章列表
+        self.cList = []
 
     @staticmethod
     def is_article_exists(url):
@@ -23,28 +23,13 @@ class ABase:
             return True
         return False
 
-    def save(self, source, type):
-        if ABase.is_article_exists(self.origin_url):
-            id = Article.objects.get(origin_url=self.origin_url).article_id
-            print('existed: ' + str(id))
-            return id
-        article = Article(
-            title=self.title,
-            origin_url=self.origin_url,
-            author=self.author,
-            addtime=self.datetime,
-            source=Source.objects.get(source_id=source),
-            type=Type.objects.get(type_id=type),
-        )
-        article.save()
-        return article.article_id
-
     def start(self):
         pass
 
+
 class AIndexSpider(ABase):
     def __init__(self, url):
-        ABase.__init__(self,url)
+        ABase.__init__(self, url)
         self.__pattern = re.compile(r'news/(.{10})')
 
     def start(self):
@@ -55,16 +40,22 @@ class AIndexSpider(ABase):
             self.origin_url = str(item.a['href']).strip()
             self.author = ''
             self.datetime = stamp_format(re.findall(self.__pattern, str(item.a['href']))[0])
-            id = self.save(1,1)
-            if not id:
-                print('save faild')
-                continue
-            self.aid.append(id)
-            self.aref.append(self.origin_url)
+            self.cList.append(
+                Article(
+                    title=self.title,
+                    origin_url=self.origin_url,
+                    author=self.author,
+                    addtime=self.datetime,
+                    source=Source.objects.get(source_id=1),
+                    type=Type.objects.get(type_id=1),
+                )
+            )
+        return self
+
 
 class AAaoSpider(ABase):
     def __init__(self, url):
-        ABase.__init__(self,url)
+        ABase.__init__(self, url)
 
     def start(self):
         rp = requests.get(self.url)
@@ -76,9 +67,14 @@ class AAaoSpider(ABase):
             self.origin_url = r'http://www.aao.cdut.edu.cn' + str(subItem['href']).strip()
             self.author = ''
             self.datetime = date_to_time(str(subItem.span.string).strip().replace('(', '').replace(')', ''))
-            id = self.save(3,2)
-            if not id:
-                print('save faild')
-                continue
-            self.aid.append(id)
-            self.aref.append(self.origin_url)
+            self.cList.append(
+                Article(
+                    title=self.title,
+                    origin_url=self.origin_url,
+                    author=self.author,
+                    addtime=self.datetime,
+                    source=Source.objects.get(source_id=3),
+                    type=Type.objects.get(type_id=2),
+                )
+            )
+        return self

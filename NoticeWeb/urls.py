@@ -19,8 +19,6 @@ from django.contrib import admin
 from cdut import views
 
 urlpatterns = [
-    url(r'^aao',views.aao),
-    # url(r'^', views.msgs),
     url(r'^$', views.index),
     url(r'^admin/', admin.site.urls),
 ]
