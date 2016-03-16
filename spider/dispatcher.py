@@ -1,11 +1,13 @@
 import re
 
-from spider.article_spider import AIndexSpider, AAaoSpider
+from spider.article_spider import AIndexSpider, AAaoSpider, AAjaxSpider
 from spider.content_spider import CIndexSpider, CAaoSpider
 
 
 def index(url):
     return AIndexSpider(url).start()
+def ajax(url):
+    return AAjaxSpider(url).start()
 def indexContent(url):
     return CIndexSpider(url).start()
     pass
@@ -34,6 +36,7 @@ def graContent(url):
 pattern = re.compile(r'www\.(.*)\.cdut.edu.cn')
 switch = {
     'xww': index,
+    'ajax': ajax,
     'aao': aao,
     'lib': lib,
     'cist': cist,
@@ -49,6 +52,8 @@ switchContent = {
 
 
 def startArticle(url):
+    if url.endswith('.dwr'):
+        return switch.get('ajax')(url)
     result = re.findall(pattern, url)
     if result:
         return switch.get(result[0])(url)

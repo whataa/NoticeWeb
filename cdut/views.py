@@ -20,7 +20,7 @@ def index(request):
     totalURL = []
     totalAid = []
     #----------------------------------------------------------1
-    pool = ThreadPool(processes=4)
+    pool = ThreadPool(processes=6)
     results = pool.map(dispatcher.startArticle, entry_url)
     pool.close()
     pool.join()
@@ -63,3 +63,15 @@ def index(request):
     return HttpResponse(datetime.now()-starttime)
 
 
+def push(request):
+    import jpush as jpush
+    app_key = u'd6bdfb193bf44f78d78300ee'
+    master_secret = u'1ec81f183f8fcf37fec1ca90'
+    _jpush = jpush.JPush(app_key, master_secret)
+
+    push = _jpush.create_push()
+    push.audience = jpush.all_
+    push.notification = jpush.notification(alert="Hello, world!")
+    push.platform = jpush.all_
+    push.send()
+    return HttpResponse('success!')

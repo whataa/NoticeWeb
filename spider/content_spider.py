@@ -27,18 +27,24 @@ class CBase:
 
     # 保存内容
     def save(self, aid):
-        print('---start save----')
+        print('---start save----' + self.url)
         try:
             Content.objects.get(article=aid)
             print('content has existed')
             return None
-        except ObjectDoesNotExist:
+        except:
             print('content not existed, exception')
-        content = Content(
-            article=Article.objects.get(article_id=aid),
-            content=self.content,
-            datetime=self.datetime
-        )
+        if self.datetime:
+            content = Content(
+                article=Article.objects.get(article_id=aid),
+                content=self.content,
+                datetime=self.datetime,
+            )
+        else:
+            content = Content(
+                article=Article.objects.get(article_id=aid),
+                content=self.content,
+            )
         content.save()
         print('save content')
         if self.author:
@@ -114,6 +120,7 @@ class CAaoSpider(CBase):
     def start(self):
         rp = requests.get(self.url)
         soup = BeautifulSoup(rp.content, 'html.parser')
+        self.datetime = None
         # 内容
         content = soup.find('div', id='text')
         for p in content.p.find_all('p'):

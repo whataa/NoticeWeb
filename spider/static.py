@@ -1,6 +1,8 @@
 entry_url = [
     # 主页-要闻
     r'http://www.cdut.edu.cn/xww/news2_yw.html',
+    # 主页--媒体
+    r'http://www.cdut.edu.cn/xww/dwr/call/plaincall/newsAjax.getXwlist.dwr',
     # 主页-公告
     r'http://www.cdut.edu.cn/xww/news2_tzgg.html',
     # 主页-学术
