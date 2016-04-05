@@ -137,7 +137,9 @@ class CAaoSpider(CBase):
             self.content.append({'table': str(content.p.table)})
         # 附件
         tmp = content.p.find('a')
-        if tmp and tmp.find_previous_sibling().name=='img':
+        if tmp and tmp.find_previous_sibling() \
+                and tmp.find_previous_sibling().has_attr('name') \
+                and tmp.find_previous_sibling().name=='img':
             self.file_name = re.findall(self.__pt, str(content.p))[0]
             # 移除链接前的.符号
             self.file_url = r'http://www.aao.cdut.edu.cn/aao' + content.p.a['href'][1:]

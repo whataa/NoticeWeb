@@ -1,9 +1,11 @@
+import json
 from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 
 from django.http.response import HttpResponse
+from django.shortcuts import render
 
-from cdut.models import Article
+from cdut.models import Article, User, Content
 from spider import dispatcher
 from spider.article_spider import AAaoSpider, ABase
 from spider.content_spider import CAaoSpider, CBase
@@ -61,6 +63,74 @@ def index(request):
 
     # print(datetime.now()-starttime)
     return HttpResponse(datetime.now()-starttime)
+
+###
+#支持post && get
+###
+def getNewsList(request):
+    _type = request.GET.get('_type')
+    _source = request.GET.get('_source')
+    _page = request.GET.get('_page')
+    _pageNum = request.GET.get('_pageNum')
+    if (not _type) or (not _source) or (not _page):
+        return render(request,'muban.html')
+    addOrUpdateUser(request)
+    if not _pageNum:
+        _pageNum = 10
+    cursor = Article.objects.filter(
+        type=_page,
+        source=_source,
+    )
+    content = Content.objects.filter(
+        article_id=cursor[0].article_id
+    )
+    result = json.loads(content[0].content)
+    return render(request,'muban.html',{'title':cursor[0].title,'content':result})
+
+
+def addOrUpdateUser(request):
+    deviceId = request.META.get('id')
+    devicePlatform = request.META.get('platform')
+    deviceModel = request.META.get('model')
+    if deviceId:
+        try:
+            id = User.objects.get(device_id=deviceId)
+            if id:
+                return id
+        except:
+            if deviceModel:
+                user = User(
+                    device_id=deviceId,
+                    device_platform=devicePlatform,
+                )
+            else:
+                user = User(
+                    device_id=deviceId,
+                    device_platform=devicePlatform,
+                    device_model=deviceModel,
+                )
+            id = user.save()
+            return id
+    return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def push(request):
