@@ -4,6 +4,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 from django.http.response import HttpResponse
 from django.shortcuts import render
+from redis._compat import unicode
 
 from cdut.models import Article, User, Content
 from spider import dispatcher
@@ -32,18 +33,21 @@ def index(request):
     for article in totalArticle:
         if ABase.is_article_exists(article.origin_url):
             tmp = Article.objects.get(origin_url=article.origin_url)
-            print('exsit article,return the id')
+            print('exsit article: ',tmp.article_id)
             totalAid.append(tmp.article_id)
         else:
             print('add article')
-            totalAid.append(article.save())
+            article.save()#存储之后才有ID，并不是由save方法返回！！！
+            totalAid.append(article.article_id)
     tmpTotalAid = totalAid
     totalAid = []
     for i in range(len(tmpTotalAid)):
         if not CBase.is_content_exists(tmpTotalAid[i]):
+            print('add aid: ',tmpTotalAid[i])
             totalAid.append(tmpTotalAid[i])
             totalURL.append(totalArticle[i].origin_url)
-    print(totalURL)
+    print('totalURL: ',totalURL)
+    print('totalAid: ',totalAid)
     #----------------------------------------------------------3
     if totalURL:
         if len(totalURL)<5:
@@ -54,7 +58,7 @@ def index(request):
         results = pool.map(dispatcher.startContent, totalURL)
         pool.close()
         pool.join()
-        print(len(results))
+        print('content result= ',len(results))
     #----------------------------------------------------------4
         for i in range(len(results)):
             content_id = results[i].save(totalAid[i])
@@ -78,14 +82,17 @@ def getNewsList(request):
     if not _pageNum:
         _pageNum = 10
     cursor = Article.objects.filter(
-        type=_page,
+        article_id=_page,
         source=_source,
     )
     content = Content.objects.filter(
         article_id=cursor[0].article_id
     )
     result = json.loads(content[0].content)
-    return render(request,'muban.html',{'title':cursor[0].title,'content':result})
+    # if isinstance(cursor[0].title, unicode):
+    _title = cursor[0].title
+        #.encode('utf-8').decode('unicode_escape')
+    return render(request,'muban.html',{'title':_title,'content':result})
 
 
 def addOrUpdateUser(request):

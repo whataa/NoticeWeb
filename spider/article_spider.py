@@ -82,7 +82,7 @@ class AAjaxSpider(ABase):
         for item in result:
             tmpUrl = re.findall(self.pParam, str(item))[0]
             self.origin_url = 'http://www.cdut.edu.cn/xww/newPage.do?xwbh=' + tmpUrl + '&yyxwym=news'
-            self.title = re.findall(self.pTitle, str(item))[0]
+            self.title = re.findall(self.pTitle, str(item))[0].encode('utf-8').decode('unicode_escape')
             self.datetime = str_to_time(re.findall(self.pTime, str(item))[0])
             self.cList.append(
                 Article(

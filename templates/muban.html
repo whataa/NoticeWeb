@@ -57,10 +57,12 @@
                             <p style="text-indent:2em"{% if item.align %} align={{item.align }}{% endif %}>{{ item.content }}</p>
                         {% endif %}
                         {% if item.img %}
-                            <p href={{ item.img }}>这是连接</p>
+                            <img src="{{ item.img }}" width="100%"/>
+                        {% endif %}
+                        {% if item.href %}
+                            <a target="_blank" href="{{ item.href }}">  点击  </a>
                         {% endif %}
                     {% endfor %}
-                {{ content }}
                 </div>
 
 

@@ -21,36 +21,39 @@ class CBase:
 
     @staticmethod
     def is_content_exists(aid):
-        if Content.objects.filter(article=aid):
-            return True
-        return False
+        try:
+            if Content.objects.get(article=aid):
+                return True
+        except:
+            print('is_content_exists: false',aid)
+            return False
 
     # 保存内容
     def save(self, aid):
-        print('---start save----' + self.url)
+        print('start save content: ' + self.url,aid)
         try:
             Content.objects.get(article=aid)
             print('content has existed')
             return None
-        except:
+        except Content.DoesNotExist:
             print('content not existed, exception')
-        if self.datetime:
-            content = Content(
-                article=Article.objects.get(article_id=aid),
-                content=self.content,
-                datetime=self.datetime,
-            )
-        else:
-            content = Content(
-                article=Article.objects.get(article_id=aid),
-                content=self.content,
-            )
-        content.save()
-        print('save content')
-        if self.author:
-            self.updateArticle(aid)
-            print('updateArticle')
-        return content.content_id
+            if self.datetime:
+                content = Content(
+                    article=Article.objects.get(article_id=aid),
+                    content=self.content,
+                    datetime=self.datetime,
+                )
+            else:
+                content = Content(
+                    article=Article.objects.get(article_id=aid),
+                    content=self.content,
+                )
+            content.save()
+            print('save content')
+            if self.author:
+                self.updateArticle(aid)
+                print('updateArticle')
+            return content.content_id
 
     # 保存附件
     def savefile(self, cid):
@@ -84,7 +87,7 @@ class CIndexSpider(CBase):
         content = soup.find('div', id='contentdisplay')
         for p in soup.find_all('p', class_='MsoNormal'):
             # 图片链接
-            if p.img:
+            if p.img and p.img.has_attr('src'):
                 self.content.append({'img': p.img['src']})
             # 是否有内容标签
             elif p.span:
@@ -92,12 +95,12 @@ class CIndexSpider(CBase):
                 if not p.span.text:
                     continue
                 if str(p.text).strip().startswith('附件：') or str(p.text).strip().startswith('下载：'):
-                    if p.a:
+                    if p.a and p.a.has_attr('href'):
                         self.file_url = p.a['href']
                         self.file_name = str(p.text).strip().replace('\n', '').replace('附件：', '').replace('下载：', '')
                         self.file_type = get_filetype(self.file_url)
                     continue
-                if p.a:
+                if p.a and p.a.has_attr('href'):
                     self.content.append({'href': p.a['href']})
                     continue
                 if not str(p.text).strip():
@@ -138,8 +141,8 @@ class CAaoSpider(CBase):
         # 附件
         tmp = content.p.find('a')
         if tmp and tmp.find_previous_sibling() \
-                and tmp.find_previous_sibling().has_attr('name') \
                 and tmp.find_previous_sibling().name=='img':
+            print('contnet has file: '+self.url)
             self.file_name = re.findall(self.__pt, str(content.p))[0]
             # 移除链接前的.符号
             self.file_url = r'http://www.aao.cdut.edu.cn/aao' + content.p.a['href'][1:]
