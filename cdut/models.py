@@ -4,6 +4,8 @@ from django.db import models
 # 用户表
 from django.utils import timezone
 
+from utils.util import json_serial
+
 
 class User(models.Model):
     user_id = models.AutoField(primary_key=True)
@@ -65,6 +67,13 @@ class File(models.Model):
     type = models.CharField(unique=False, max_length=8)
     def __str__(self):
         return self.name
+    def toJson(self):
+        item = {}
+        item['id'] = self.file_id
+        item['url'] = self.url
+        item['name'] = self.name
+        item['type'] = self.type
+        return item
 
 
 # 文章数据表
@@ -78,6 +87,17 @@ class Article(models.Model):
     addtime = models.DateTimeField(unique=False)
     def __str__(self):
         return self.title
+    def toJson(self):
+        _item = {}
+        _item['id'] = self.article_id
+        _item['title'] = self.title
+        _item['author'] = self.author
+        _item['url'] = self.origin_url
+        from utils.util import json_serial
+        _item['time'] = json_serial(self.addtime)
+        _item['source'] = self.source_id
+        _item['type'] = self.type_id
+        return _item
 
 
 # 文章内容表
@@ -88,3 +108,9 @@ class Content(models.Model):
     datetime = models.DateTimeField(default=timezone.now)
     def __str__(self):
         return self.content
+    def toJson(self):
+        item ={}
+        item['id'] = self.content_id
+        item['content'] = self.content
+        item['dateTime'] = json_serial(self.datetime)
+        return item

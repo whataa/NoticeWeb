@@ -21,3 +21,11 @@ def date_to_time(str):
 # 从附件url中得到类型
 def get_filetype(url):
     return url.split('.')[-1]
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, datetime.datetime):
+        serial = obj.isoformat()
+        return serial
+    return obj

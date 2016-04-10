@@ -19,7 +19,9 @@ from django.contrib import admin
 from cdut import views
 
 urlpatterns = [
+    url(r'^user/$',views.addOrUpdateUser),
     url(r'^news/comment/$',views.push),
+    url(r'^news/$',views.getNews),
     url(r'^news/list/$',views.getNewsList),
     url(r'^push',views.push),
     url(r'^$', views.index),
