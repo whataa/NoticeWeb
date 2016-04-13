@@ -24,12 +24,19 @@ class Comment(models.Model):
     comment_id = models.AutoField(primary_key=True)
     article = models.ForeignKey('Article', unique=False)
     user = models.ForeignKey('User')
-    datetime = models.DateTimeField(unique=False)
+    datetime = models.DateTimeField(unique=False,auto_now_add=True)
     tool = models.CharField(blank=True, unique=False, max_length=16)
     message = models.TextField(unique=False)
     def __str__(self):
         return self.message
-
+    def toJson(self):
+        item = {}
+        item['id'] = self.comment_id
+        item['articleId'] = self.article
+        item['userId'] = self.user
+        item['tool'] = self.tool
+        item['datetime'] = json_serial(self.datetime)
+        return item
 
 # 访问次数表
 class VisitNum(models.Model):

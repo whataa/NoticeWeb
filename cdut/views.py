@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from redis._compat import unicode
 
-from cdut.models import Article, User, Content, File, Type, Source
+from cdut.models import Article, User, Content, File, Type, Source, Comment
 from spider import dispatcher
 from spider.article_spider import AAaoSpider, ABase
 from spider.content_spider import CAaoSpider, CBase
@@ -19,7 +19,7 @@ from spider.static import entry_url
 # 2、依据url从数据库判断是否已存在进而筛选出新增对象列表；
 # 3、依据列表的大小判断多线程数量开启Map的内容抓取，获得content对象列表；
 # 4、单线程批量存储Article，Content，file
-from utils.util import json_serial
+from utils.util import json_serial, get_cur_time
 
 
 def index(request):
@@ -74,9 +74,9 @@ def index(request):
     return HttpResponse(datetime.now() - starttime)
 
 
-###
-# 支持post && get
-###
+# 获取信息列表
+# 1.无_pageNum参数则默认每页数量10
+# 2.无_startId参数则默认从最新ID开始
 @csrf_exempt
 def getNewsList(request):
     _type = request.GET.get('_type')
@@ -101,9 +101,9 @@ def getNewsList(request):
     if source:
         args['source'] = source
     if _startId:
-        args['article_id__gte'] = _startId
-        args['article_id__lte'] = int(_startId)+int(_pageNum)
-    cursor = Article.objects.filter(**args)
+        args['article_id__gte'] = int(_startId)-int(_pageNum)
+        args['article_id__lte'] = _startId
+    cursor = Article.objects.order_by('-article_id').filter(**args)
     data = []
     for item in cursor:
         if len(data) >= _pageNum:
@@ -116,6 +116,7 @@ def getNewsList(request):
     # .encode('utf-8').decode('unicode_escape')
     # return render(request, 'muban.html', {'title': _title, 'content': result})
 
+# 获取信息详情
 @csrf_exempt
 def getNews(request):
     _aid = request.GET.get('_aid')
@@ -140,21 +141,43 @@ def getNews(request):
     return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
 
 def addComment(request):
-    pass
+    _articleId = request.GET.get('_articleId')
+    _tool = request.GET.get('_tool')
+    _msg = request.GET.get('_msg')
+    _user = addOrUpdateUser(request)
+    if not _user:
+        return HttpResponse(json.dumps(baseJSON(False, '无法评论')), content_type="application/json")
+    try:
+        _id = Article.objects.get(article_id=_articleId)
+    except Article.DoesNotExist:
+        return HttpResponse(json.dumps(baseJSON(False, '文章已删除')), content_type="application/json")
+    if not _msg:
+        return HttpResponse(json.dumps(baseJSON(False, '评论不能为空')), content_type="application/json")
+    arg = {}
+    if _tool:
+        arg['tool'] = _tool
+    arg['article_id'] = _id.article_id
+    arg['user_id'] = _user
+    arg['message'] = _msg
+    comment = Comment(**arg)
+    comment.save()
+    return HttpResponse(json.dumps(baseJSON(True, '评论成功')), content_type="application/json")
 
 def getFile(request):
     pass
 
+# 新增/更新用户信息，仅供内部调用
 @csrf_exempt
 def addOrUpdateUser(request):
     deviceId = request.META.get('HTTP_ID')
     devicePlatform = request.META.get('HTTP_PLATFORM')
     deviceModel = request.META.get('HTTP_MODEL')
     if not deviceId:
-        return HttpResponse('none')
+        return None
     try:
-        User.objects.get(device_id=deviceId).save()
-        return HttpResponse('')
+        user = User.objects.get(device_id=deviceId)
+        user.save()
+        return user.user_id
     except User.DoesNotExist:
         args = {}
         args['device_id'] = deviceId
@@ -165,7 +188,7 @@ def addOrUpdateUser(request):
         user.save()
         return user.user_id
 
-
+# json模板
 def baseJSON(isTrue, msg, data=None):
     _json = {}
     _json['result'] = isTrue
@@ -176,7 +199,7 @@ def baseJSON(isTrue, msg, data=None):
         _json['data'] = {}
     return _json
 
-
+# 推送
 def push(request):
     import jpush as jpush
     app_key = u'd6bdfb193bf44f78d78300ee'

@@ -29,3 +29,9 @@ def json_serial(obj):
         serial = obj.isoformat()
         return serial
     return obj
+
+def get_cur_time():
+    import time
+    return time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(time.time()))
+
+print(get_cur_time())

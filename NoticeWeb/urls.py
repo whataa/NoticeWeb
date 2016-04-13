@@ -20,7 +20,7 @@ from cdut import views
 
 urlpatterns = [
     url(r'^user/$',views.addOrUpdateUser),
-    url(r'^news/comment/$',views.push),
+    url(r'^news/comment/$',views.addComment),
     url(r'^news/$',views.getNews),
     url(r'^news/list/$',views.getNewsList),
     url(r'^push',views.push),
