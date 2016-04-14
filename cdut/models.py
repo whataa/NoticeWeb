@@ -32,10 +32,11 @@ class Comment(models.Model):
     def toJson(self):
         item = {}
         item['id'] = self.comment_id
-        item['articleId'] = self.article
-        item['userId'] = self.user
+        item['articleId'] = self.article.article_id
+        item['userId'] = self.user.user_id
         item['tool'] = self.tool
         item['datetime'] = json_serial(self.datetime)
+        item['message'] = self.message
         return item
 
 # 访问次数表

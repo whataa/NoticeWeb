@@ -3,14 +3,12 @@ from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 
 from django.http.response import HttpResponse
-from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from redis._compat import unicode
 
 from cdut.models import Article, User, Content, File, Type, Source, Comment
 from spider import dispatcher
-from spider.article_spider import AAaoSpider, ABase
-from spider.content_spider import CAaoSpider, CBase
+from spider.article_spider import ABase
+from spider.content_spider import CBase
 from spider.static import entry_url
 
 
@@ -19,7 +17,6 @@ from spider.static import entry_url
 # 2、依据url从数据库判断是否已存在进而筛选出新增对象列表；
 # 3、依据列表的大小判断多线程数量开启Map的内容抓取，获得content对象列表；
 # 4、单线程批量存储Article，Content，file
-from utils.util import json_serial, get_cur_time
 
 
 def index(request):
@@ -55,6 +52,7 @@ def index(request):
     print('totalAid: ', totalAid)
     # ----------------------------------------------------------3
     if totalURL:
+        push(len(totalURL))
         if len(totalURL) < 5:
             threadNum = len(totalURL)
         else:
@@ -140,13 +138,14 @@ def getNews(request):
     data['file'] = _file.toJson() if _file else {}
     return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
 
+# 添加评论
 def addComment(request):
     _articleId = request.GET.get('_articleId')
     _tool = request.GET.get('_tool')
     _msg = request.GET.get('_msg')
     _user = addOrUpdateUser(request)
     if not _user:
-        return HttpResponse(json.dumps(baseJSON(False, '无法评论')), content_type="application/json")
+        return HttpResponse(json.dumps(baseJSON(False, '没有该用户')), content_type="application/json")
     try:
         _id = Article.objects.get(article_id=_articleId)
     except Article.DoesNotExist:
@@ -162,6 +161,51 @@ def addComment(request):
     comment = Comment(**arg)
     comment.save()
     return HttpResponse(json.dumps(baseJSON(True, '评论成功')), content_type="application/json")
+
+# 获取评论列表
+def getCommentList(request):
+    _articleId = request.GET.get('_articleId')
+    _userId = request.GET.get('_userId')
+    _startId = request.GET.get('_startId')
+    _pageNum = request.GET.get('_pageNum')
+    if not _pageNum:
+        _pageNum = 10
+    if _userId:
+        user = getUser(request)
+        if not user:
+            return HttpResponse(json.dumps(baseJSON(False, '没有该用户')), content_type="application/json")
+    else:
+        user = None
+    if _articleId:
+        try:
+            article = Article.objects.get(article_id=_articleId)
+        except Article.DoesNotExist:
+            return HttpResponse(json.dumps(baseJSON(False, '文章已删除')), content_type="application/json")
+    else:
+        article = None
+    args = {}
+    if _startId:
+        args['comment_id__lte'] = _startId
+    if user:
+        args['user_id'] = user.user_id
+    if article:
+        args['article_id'] = article.article_id
+    cursor = Comment.objects.order_by('-comment_id').filter(**args)
+    data = []
+    for item in cursor:
+        if len(data) >= _pageNum:
+            break
+        data.append(item.toJson())
+    return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+
+# 获取用户信息，仅供内部调用
+def getUser(request):
+    userId = request.GET.get('_userId')
+    try:
+        user = User.objects.get(user_id=userId)
+        return user
+    except User.DoesNotExist:
+        return None
 
 def getFile(request):
     pass
@@ -200,7 +244,7 @@ def baseJSON(isTrue, msg, data=None):
     return _json
 
 # 推送
-def push(request):
+def push(num):
     import jpush as jpush
     app_key = u'd6bdfb193bf44f78d78300ee'
     master_secret = u'1ec81f183f8fcf37fec1ca90'
@@ -208,7 +252,6 @@ def push(request):
 
     push = _jpush.create_push()
     push.audience = jpush.all_
-    push.notification = jpush.notification(alert="Hello, world!")
+    push.notification = jpush.notification(alert="update: "+str(num))
     push.platform = jpush.all_
     push.send()
-    return HttpResponse('success!')
