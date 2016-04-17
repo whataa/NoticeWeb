@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 
+from django.db.models import Q
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -139,6 +140,7 @@ def getNews(request):
     return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
 
 # 添加评论
+@csrf_exempt
 def addComment(request):
     _articleId = request.GET.get('_articleId')
     _tool = request.GET.get('_tool')
@@ -163,6 +165,7 @@ def addComment(request):
     return HttpResponse(json.dumps(baseJSON(True, '评论成功')), content_type="application/json")
 
 # 获取评论列表
+@csrf_exempt
 def getCommentList(request):
     _articleId = request.GET.get('_articleId')
     _userId = request.GET.get('_userId')
@@ -197,6 +200,43 @@ def getCommentList(request):
             break
         data.append(item.toJson())
     return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+
+#获取热门列表
+def getHotNews(request):
+    cursor = Comment.objects.raw('SELECT * FROM cdut_comment GROUP BY article_id HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC')
+    ids = []
+    for comment in cursor:
+        ids.append(comment.article_id)
+    result = []
+    if ids:
+        result = Article.objects.filter(
+            article_id__in=ids
+        )
+    data = []
+    for item in result:
+        if len(data) >= 10:
+            break
+        data.append(item.toJson())
+    return HttpResponse(json.dumps(baseJSON(True, '请求成功',data=data)), content_type="application/json")
+
+@csrf_exempt
+def doSearch(request):
+    param = request.GET.get('_param')
+    pageNum = request.GET.get('_pageNum')
+    if not pageNum:
+        pageNum = 10
+    if not param:
+        return HttpResponse(json.dumps(baseJSON(False, '条件不能为空')), content_type="application/json")
+    cursor = Article.objects.filter(
+        Q(title__contains=param)|Q(author__contains=param)|Q(addtime__contains=param)
+    ).order_by('-addtime')
+    data = []
+    for item in cursor:
+        if len(data) >= pageNum:
+            break
+        data.append(item.toJson())
+    return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+
 
 # 获取用户信息，仅供内部调用
 def getUser(request):

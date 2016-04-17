@@ -19,11 +19,13 @@ from django.contrib import admin
 from cdut import views
 
 urlpatterns = [
+    url(r'^news/search/$',views.doSearch),
     url(r'^user/$',views.addOrUpdateUser),
     url(r'^comment/list/$',views.getCommentList),
     url(r'^comment/$',views.addComment),
     url(r'^news/$',views.getNews),
     url(r'^news/list/$',views.getNewsList),
+    url(r'^news/hot/$',views.getHotNews),
     url(r'^push/$',views.push),
     url(r'^$', views.index),
     url(r'^admin/', admin.site.urls),

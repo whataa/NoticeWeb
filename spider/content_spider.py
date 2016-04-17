@@ -3,7 +3,6 @@ import re
 
 import requests
 from bs4 import BeautifulSoup
-from django.core.exceptions import ObjectDoesNotExist
 
 from cdut.models import Content, File, Article
 from utils.util import str_to_time, get_filetype
@@ -85,7 +84,13 @@ class CIndexSpider(CBase):
         self.datetime = str_to_time(
             re.findall(self.__pt, str(soup.find('span', class_='pubtime').text).replace('\n', ''))[0])
         content = soup.find('div', id='contentdisplay')
-        for p in soup.find_all('p', class_='MsoNormal'):
+        MsoNormal = content.find_all('p', class_='MsoNormal')
+        Default = content.find_all('p', class_='Default')
+        if (len(MsoNormal)-len(Default))>0:
+            findResult = MsoNormal
+        else:
+            findResult = Default
+        for p in findResult:
             # 图片链接
             if p.img and p.img.has_attr('src'):
                 self.content.append({'img': p.img['src']})
@@ -101,7 +106,13 @@ class CIndexSpider(CBase):
                         self.file_type = get_filetype(self.file_url)
                     continue
                 if p.a and p.a.has_attr('href'):
-                    self.content.append({'href': p.a['href']})
+                    tmpFile = p.find_all('a', class_='ke-insertfile')
+                    if tmpFile:
+                        self.file_name = p.a.text
+                        self.file_url = p.a['href']
+                        self.file_type = get_filetype(self.file_url)
+                    else:
+                        self.content.append({'href': p.a['href']})
                     continue
                 if not str(p.text).strip():
                     continue
