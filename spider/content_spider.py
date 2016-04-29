@@ -30,6 +30,10 @@ class CBase:
     # 保存内容
     def save(self, aid):
         print('start save content: ' + self.url,aid)
+        # 抓取失败，跳过保存
+        if  (not self.content) and (not self.datetime):
+            print('content not save,break')
+            return None
         try:
             Content.objects.get(article=aid)
             print('content has existed')
@@ -158,7 +162,120 @@ class CAaoSpider(CBase):
             # 移除链接前的.符号
             self.file_url = r'http://www.aao.cdut.edu.cn/aao' + content.p.a['href'][1:]
             self.file_type = get_filetype(self.file_url)
-
         self.content = json.dumps(self.content, ensure_ascii=False)
-
         return self
+
+class CLibSpider(CBase):
+    def __init__(self, url):
+        CBase.__init__(self, url)
+
+    def start(self):
+        try:
+            rp = requests.get(self.url,timeout=2)
+            rp.encoding='GB2312'
+        except:
+            print('libContent connect timeout,break')
+            return self
+        soup = BeautifulSoup(rp.text, 'html.parser')
+        #内容
+        content = soup.find('div', id='passage')
+        first_tr = content.table.find('tr')
+        for next in first_tr.find_next_siblings():
+            #删除分享
+            if next.find(class_='bshare-custom'):
+                del next
+                continue
+            for item in next.td.p:
+                if str(item).startswith('<div'):
+                    if item.table:
+                        self.content.append({'table': str(item.table)})
+                    else:
+                        if not item.text.strip()=='':
+                            if item.has_attr('align'):
+                                self.content.append({'content': item.text.strip(), 'align': item['align']})
+                            else:
+                                self.content.append({'content': item.text.strip()})
+                elif str(item).startswith('<p'):
+                    if (not item.img) and (not item.div) and (not item.table):
+                        if item.text:
+                            self.content.append({'content': item.text})
+                    elif item.img and item.img.has_attr('src'):
+                        self.content.append({'img': item.img['src']})
+                    else:
+                        for subitem in item:
+                            if str(subitem).startswith('<div'):
+                                if not subitem.text.strip()=='':
+                                    if subitem.has_attr('align'):
+                                        self.content.append({'content': subitem.text.strip(), 'align': subitem['align']})
+                                    else:
+                                        self.content.append({'content': subitem.text.strip()})
+                            elif str(subitem).startswith('<table'):
+                                self.content.append({'table': str(subitem)})
+            return self
+
+
+class CCistSpider(CBase):
+    def __init__(self, url):
+        CBase.__init__(self, url)
+
+    def start(self):
+        try:
+            rp = requests.get(self.url,timeout=2)
+            rp.encoding='utf8'
+        except:
+            print('cistContent connect timeout,break')
+            return self
+        soup = BeautifulSoup(rp.content, 'html.parser')
+        info = soup.find('div',class_='info')
+        pattern = re.compile(r'>作者:</small>(.*)<small>')
+        author = re.findall(pattern,str(info))
+        if author:
+            self.author = author[0]
+        content = soup.find('div', class_='content')
+        for p in content.table.tr.td:
+            if not str(p).strip():
+                continue
+            if str(p).startswith('<div'):
+                self.content.append({'content': str(p.text).strip()})
+                if p.p and p.p.img and p.p.img.has_attr('src'):
+                    self.content.append({'img': r'http://www.cist.cdut.edu.cn' + p.p.img['src']})
+            elif str(p).startswith('<p'):
+                if not p.text:
+                    continue
+                if not str(p.text).strip():
+                    continue
+                self.parsecontent(p)
+            elif str(p).startswith('<span'):
+                if not p.p:
+                    continue
+                for subp in p:
+                    if not subp.text:
+                        continue
+                    if not str(subp.text).strip():
+                        continue
+                    self.parsecontent(subp)
+            elif str(p).startswith('<table'):
+                self.content.append({'table': p})
+        return self
+
+    def parsecontent(self,p):
+        if p.img:
+            if p.a:
+                self.file_name = p.a.text
+                self.file_url = r'http://www.cist.cdut.edu.cn' + p.a['href']
+                self.file_type = get_filetype(self.file_url)
+            elif p.img.has_attr('src'):
+                self.content.append({'img': r'http://www.cist.cdut.edu.cn' + p.img['src']})
+        else:
+            if p.has_attr('style') and ('text-align:right' in p['style']):
+                self.content.append({'content': str(p.text).strip(), 'align': 'right'})
+            else:
+                self.content.append({'content': str(p.text).strip()})
+
+
+class CGraSpider(CBase):
+    def __init__(self, url):
+        CBase.__init__(self, url)
+
+    def start(self):
+        pass

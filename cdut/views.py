@@ -2,11 +2,13 @@ import json
 from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 
+import requests
+from bs4 import BeautifulSoup
 from django.db.models import Q
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from cdut.models import Article, User, Content, File, Type, Source, Comment
+from cdut.models import Article, User, Content, File, Type, Source, Comment, VisitNum
 from spider import dispatcher
 from spider.article_spider import ABase
 from spider.content_spider import CBase
@@ -32,7 +34,8 @@ def index(request):
     pool.join()
     # ----------------------------------------------------------2
     for list in results:
-        totalArticle.extend(list.cList)
+        if list:
+            totalArticle.extend(list.cList)
     for article in totalArticle:
         if ABase.is_article_exists(article.origin_url):
             tmp = Article.objects.get(origin_url=article.origin_url)
@@ -53,8 +56,7 @@ def index(request):
     print('totalAid: ', totalAid)
     # ----------------------------------------------------------3
     if totalURL:
-        push(len(totalURL))
-        if len(totalURL) < 5:
+        if len(totalURL) < 9:
             threadNum = len(totalURL)
         else:
             threadNum = len(totalURL) // 2
@@ -65,11 +67,13 @@ def index(request):
         print('content result= ', len(results))
         # ----------------------------------------------------------4
         for i in range(len(results)):
-            content_id = results[i].save(totalAid[i])
-            if content_id and results[i].file_url:
-                results[i].savefile(content_id)
+            if results[i]:
+                content_id = results[i].save(totalAid[i])
+                if content_id and results[i].file_url:
+                    results[i].savefile(content_id)
 
     # print(datetime.now()-starttime)
+    #     push(len(totalURL))
     return HttpResponse(datetime.now() - starttime)
 
 
@@ -130,6 +134,8 @@ def getNews(request):
         _content = Content.objects.get(article=_article)
     except Content.DoesNotExist:
         return HttpResponse(json.dumps(baseJSON(False, '文章已删除')), content_type="application/json")
+    addOrUpdateUser(request)
+    statVisitNum(_aid)
     try:
         _file = File.objects.get(content_id=_content)
     except File.DoesNotExist:
@@ -138,6 +144,18 @@ def getNews(request):
     data['content'] = _content.toJson()
     data['file'] = _file.toJson() if _file else {}
     return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+
+def statVisitNum(aid):
+    try:
+        _visit = VisitNum.objects.get(article_id=aid)
+        _visit.pv += 1
+        _visit.save()
+    except VisitNum.DoesNotExist:
+        visit = VisitNum(
+            pv=1,
+            article_id=aid
+        )
+        visit.save()
 
 # 添加评论
 @csrf_exempt
@@ -171,6 +189,7 @@ def getCommentList(request):
     _userId = request.GET.get('_userId')
     _startId = request.GET.get('_startId')
     _pageNum = request.GET.get('_pageNum')
+    addOrUpdateUser(request)
     if not _pageNum:
         _pageNum = 10
     if _userId:
@@ -203,6 +222,7 @@ def getCommentList(request):
 
 #获取热门列表
 def getHotNews(request):
+    addOrUpdateUser(request)
     cursor = Comment.objects.raw('SELECT * FROM cdut_comment GROUP BY article_id HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC')
     ids = []
     for comment in cursor:
@@ -219,6 +239,7 @@ def getHotNews(request):
         data.append(item.toJson())
     return HttpResponse(json.dumps(baseJSON(True, '请求成功',data=data)), content_type="application/json")
 
+
 @csrf_exempt
 def doSearch(request):
     param = request.GET.get('_param')
@@ -227,6 +248,7 @@ def doSearch(request):
         pageNum = 10
     if not param:
         return HttpResponse(json.dumps(baseJSON(False, '条件不能为空')), content_type="application/json")
+    addOrUpdateUser(request)
     cursor = Article.objects.filter(
         Q(title__contains=param)|Q(author__contains=param)|Q(addtime__contains=param)
     ).order_by('-addtime')
@@ -235,6 +257,24 @@ def doSearch(request):
         if len(data) >= pageNum:
             break
         data.append(item.toJson())
+    return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+
+
+def getPicList(request):
+    try:
+        rp = requests.get(r'http://www.cdut.edu.cn/default.html',timeout=2)
+    except:
+        return HttpResponse(json.dumps(baseJSON(False, '无法连接')), content_type="application/json")
+    soup = BeautifulSoup(rp.content, 'html.parser')
+    list = soup.find('ul', class_='pic')
+    data = []
+    for item in list:
+        if not str(item).strip():
+            continue
+        tmp = {}
+        tmp['img'] = r'http://www.cdut.edu.cn/'+item.a.img['src']
+        tmp['target'] = item.a['href']
+        data.append(tmp)
     return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
 
 
@@ -247,8 +287,10 @@ def getUser(request):
     except User.DoesNotExist:
         return None
 
+
 def getFile(request):
     pass
+
 
 # 新增/更新用户信息，仅供内部调用
 @csrf_exempt

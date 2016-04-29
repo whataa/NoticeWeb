@@ -138,3 +138,92 @@ class AAaoSpider(ABase):
                 )
             )
         return self
+
+
+class ALibSpider(ABase):
+    def __init__(self, url):
+        ABase.__init__(self, url)
+
+    def start(self):
+        try:
+            rp = requests.get(self.url,timeout=2)
+        except:
+            print('lib title timeout,break')
+            return self
+        soup = BeautifulSoup(rp.content, 'html.parser')
+        for item in soup.find_all('li', class_='mainlist_li_notice'):
+            self.title = str(item.a['title']).strip()
+            self.origin_url = r'http://www.lib.cdut.edu.cn' + str(item.a['href']).strip()
+            self.author = '图书馆'
+            self.cList.append(
+                Article(
+                    title=self.title,
+                    origin_url=self.origin_url,
+                    author=self.author,
+                    source=Source.objects.get(source_id=2),
+                    type=Type.objects.get(type_id=2),
+                )
+            )
+        return self
+
+
+class AGraSpider(ABase):
+    def __init__(self, url):
+        ABase.__init__(self, url)
+
+    def start(self):
+        pattern = re.compile(r'</small>(.*) <small>')
+        try:
+            rp = requests.get(self.url,timeout=2)
+        except:
+            return self
+        soup = BeautifulSoup(rp.content, 'html.parser')
+        for item in soup.find_all(class_='title'):
+            self.title = str(item.string).strip()
+            self.origin_url = r'http://www.gra.cdut.edu.cn' + str(item['href']).strip()
+            self.author = '研招办'
+            self.datetime = str_to_time(re.search(pattern, str(item.find_next_sibling()))
+                  .group().replace('</small>','').replace('<small>',''))
+            self.cList.append(
+                Article(
+                    title=self.title,
+                    origin_url=self.origin_url,
+                    author=self.author,
+                    addtime=self.datetime,
+                    source=Source.objects.get(source_id=4),
+                    type=Type.objects.get(type_id=3),
+                )
+            )
+        return self
+
+
+class ACistSpider(ABase):
+    def __init__(self, url):
+        ABase.__init__(self, url)
+
+    def start(self):
+        try:
+            rp = requests.get(self.url)
+        except:
+            print('cist title timeout,break')
+            return self
+        soup = BeautifulSoup(rp.content, 'html.parser')
+        for item in soup.find_all('span'):
+            if item.a:
+                continue
+            if not item.find_next_sibling():
+                continue
+            sibItem = item.find_next_sibling()
+            self.title = str(sibItem.string).strip()
+            self.origin_url = r'http://www.cist.cdut.edu.cn' + str(sibItem['href']).strip()
+            self.datetime = date_to_time(str(item.string).replace(' ', ''))
+            self.cList.append(
+                Article(
+                    title=self.title,
+                    origin_url=self.origin_url,
+                    addtime=self.datetime,
+                    source=Source.objects.get(source_id=5),
+                    type=Type.objects.get(type_id=3),
+                )
+            )
+        return self

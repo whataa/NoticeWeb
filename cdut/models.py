@@ -92,7 +92,7 @@ class Article(models.Model):
     title = models.TextField()
     origin_url = models.URLField()
     author = models.CharField(blank=True, unique=False, max_length=32)
-    addtime = models.DateTimeField(unique=False)
+    addtime = models.DateTimeField(unique=False,auto_now_add=True)
     def __str__(self):
         return self.title
     def toJson(self):

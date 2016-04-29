@@ -1,7 +1,7 @@
 import re
 
-from spider.article_spider import AIndexSpider, AAaoSpider, AAjaxSpider
-from spider.content_spider import CIndexSpider, CAaoSpider
+from spider.article_spider import AIndexSpider, AAaoSpider, AAjaxSpider, ALibSpider, ACistSpider
+from spider.content_spider import CIndexSpider, CAaoSpider, CLibSpider, CCistSpider
 
 
 def index(url):
@@ -19,14 +19,16 @@ def aaoContent(url):
     pass
 
 def lib(url):
-    pass
+    return ALibSpider(url).start()
 def libContent(url):
-    pass
+    return CLibSpider(url).start()
+
 
 def cist(url):
-    pass
+    return ACistSpider(url).start()
 def cistContent(url):
-    pass
+    return CCistSpider(url).start()
+
 
 def gra(url):
     pass

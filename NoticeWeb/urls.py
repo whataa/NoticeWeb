@@ -19,6 +19,7 @@ from django.contrib import admin
 from cdut import views
 
 urlpatterns = [
+    url(r'^pic/$',views.getPicList),
     url(r'^news/search/$',views.doSearch),
     url(r'^user/$',views.addOrUpdateUser),
     url(r'^comment/list/$',views.getCommentList),
