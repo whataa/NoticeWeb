@@ -35,7 +35,11 @@ class AIndexSpider(ABase):
         self.__pattern = re.compile(r'news/(.{10})')
 
     def start(self):
-        rp = requests.get(self.url)
+        try:
+            rp = requests.get(self.url,timeout=2)
+        except:
+            print('cdut title timeout,break',self.url)
+            return self
         soup = BeautifulSoup(rp.content, 'html.parser')
         for item in soup.find_all('li'):
             self.title = str(item.a['title']).strip()
@@ -77,6 +81,9 @@ class AAjaxSpider(ABase):
 
     def start(self):
         result = self.__start_ajax_data(self.url, self.ajaxRequestBody)
+        if not result:
+            print('ajax title timeout',self.url)
+            return self
         result = result.split('\n')
         result = result[3:-4]
         for item in result:
@@ -108,7 +115,10 @@ class AAjaxSpider(ABase):
             for k in headers.keys():
                 req.add_header(k, headers[k])
         params = urllib.parse.urlencode(data).encode(encoding='utf8')
-        response = urllib.request.urlopen(req, params)
+        try:
+            response = urllib.request.urlopen(req, params,timeout=2)
+        except:
+            return None
         result = response.read()
         return result.decode("utf8")
 
@@ -118,7 +128,11 @@ class AAaoSpider(ABase):
         ABase.__init__(self, url)
 
     def start(self):
-        rp = requests.get(self.url)
+        try:
+            rp = requests.get(self.url,timeout=2)
+        except:
+            print('aao title timeout,break')
+            return self
         soup = BeautifulSoup(rp.content, 'html.parser')
 
         for item in soup.find_all('img', alt='news'):
