@@ -95,16 +95,16 @@ def getNewsList(request):
         type = Type.objects.get(type_id=_type) if _type else None
         source = Source.objects.get(source_id=_source) if _source else None
     except Type.DoesNotExist:
-        return HttpResponse(json.dumps(baseJSON(False, '_type参数错误')), content_type="application/json")
+        return HResponse(baseJSON(False, '_type参数错误'))
     except Source.DoesNotExist:
-        return HttpResponse(json.dumps(baseJSON(False, '_source参数错误')), content_type="application/json")
+        return HResponse(baseJSON(False, '_source参数错误'))
     args = {}
     if type:
         args['type'] = type
     if source:
         args['source'] = source
     if _startId:
-        args['article_id__gte'] = int(_startId)-int(_pageNum)
+        args['article_id__gte'] = int(_startId) - int(_pageNum)
         args['article_id__lte'] = _startId
     cursor = Article.objects.order_by('-article_id').filter(**args)
     data = []
@@ -112,12 +112,13 @@ def getNewsList(request):
         if len(data) >= _pageNum:
             break
         data.append(item.toJson())
-    return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+    return HResponse(baseJSON(True, '请求成功', data=data))
     # result = json.loads(content[0].content)
     # if isinstance(cursor[0].title, unicode):
     # _title = cursor[0].title
     # .encode('utf-8').decode('unicode_escape')
     # return render(request, 'muban.html', {'title': _title, 'content': result})
+
 
 # 获取信息详情
 @csrf_exempt
@@ -125,15 +126,15 @@ def getNews(request):
     _aid = request.GET.get('_aid')
     data = {}
     if not _aid:
-        return HttpResponse(json.dumps(baseJSON(False, '参数不能为空')), content_type="application/json")
+        return HResponse(baseJSON(False, '参数不能为空'))
     try:
         _article = Article.objects.get(article_id=_aid)
     except Article.DoesNotExist:
-        return HttpResponse(json.dumps(baseJSON(False, '未找到')), content_type="application/json")
+        return HResponse(baseJSON(False, '未找到'))
     try:
         _content = Content.objects.get(article=_article)
     except Content.DoesNotExist:
-        return HttpResponse(json.dumps(baseJSON(False, '文章已删除')), content_type="application/json")
+        return HResponse(baseJSON(False, '文章已删除'))
     addOrUpdateUser(request)
     statVisitNum(_aid)
     try:
@@ -143,7 +144,8 @@ def getNews(request):
     data['article'] = _article.toJson()
     data['content'] = _content.toJson()
     data['file'] = _file.toJson() if _file else {}
-    return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+    return HResponse(baseJSON(True, '请求成功', data=data))
+
 
 def statVisitNum(aid):
     try:
@@ -157,6 +159,7 @@ def statVisitNum(aid):
         )
         visit.save()
 
+
 # 添加评论
 @csrf_exempt
 def addComment(request):
@@ -165,13 +168,13 @@ def addComment(request):
     _msg = request.GET.get('_msg')
     _user = addOrUpdateUser(request)
     if not _user:
-        return HttpResponse(json.dumps(baseJSON(False, '没有该用户')), content_type="application/json")
+        return HResponse(baseJSON(False, '没有该用户'))
     try:
         _id = Article.objects.get(article_id=_articleId)
     except Article.DoesNotExist:
-        return HttpResponse(json.dumps(baseJSON(False, '文章已删除')), content_type="application/json")
+        return HResponse(baseJSON(False, '文章已删除'))
     if not _msg:
-        return HttpResponse(json.dumps(baseJSON(False, '评论不能为空')), content_type="application/json")
+        return HResponse(baseJSON(False, '评论不能为空'))
     arg = {}
     if _tool:
         arg['tool'] = _tool
@@ -180,7 +183,8 @@ def addComment(request):
     arg['message'] = _msg
     comment = Comment(**arg)
     comment.save()
-    return HttpResponse(json.dumps(baseJSON(True, '评论成功')), content_type="application/json")
+    return HResponse(baseJSON(True, '评论成功'))
+
 
 # 获取评论列表
 @csrf_exempt
@@ -195,14 +199,14 @@ def getCommentList(request):
     if _userId:
         user = getUser(request)
         if not user:
-            return HttpResponse(json.dumps(baseJSON(False, '没有该用户')), content_type="application/json")
+            return HResponse(baseJSON(False, '没有该用户'))
     else:
         user = None
     if _articleId:
         try:
             article = Article.objects.get(article_id=_articleId)
         except Article.DoesNotExist:
-            return HttpResponse(json.dumps(baseJSON(False, '文章已删除')), content_type="application/json")
+            return HResponse(baseJSON(False, '文章已删除'))
     else:
         article = None
     args = {}
@@ -218,12 +222,14 @@ def getCommentList(request):
         if len(data) >= _pageNum:
             break
         data.append(item.toJson())
-    return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+    return HResponse(baseJSON(True, '请求成功', data=data))
 
-#获取热门列表
+
+# 获取热门列表
 def getHotNews(request):
     addOrUpdateUser(request)
-    cursor = Comment.objects.raw('SELECT * FROM cdut_comment GROUP BY article_id HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC')
+    cursor = Comment.objects.raw(
+        'SELECT * FROM cdut_comment GROUP BY article_id HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC')
     ids = []
     for comment in cursor:
         ids.append(comment.article_id)
@@ -237,7 +243,7 @@ def getHotNews(request):
         if len(data) >= 10:
             break
         data.append(item.toJson())
-    return HttpResponse(json.dumps(baseJSON(True, '请求成功',data=data)), content_type="application/json")
+    return HResponse(baseJSON(True, '请求成功', data=data))
 
 
 @csrf_exempt
@@ -247,24 +253,24 @@ def doSearch(request):
     if not pageNum:
         pageNum = 10
     if not param:
-        return HttpResponse(json.dumps(baseJSON(False, '条件不能为空')), content_type="application/json")
+        return HResponse(baseJSON(False, '条件不能为空'))
     addOrUpdateUser(request)
     cursor = Article.objects.filter(
-        Q(title__contains=param)|Q(author__contains=param)|Q(addtime__contains=param)
+        Q(title__contains=param) | Q(author__contains=param) | Q(addtime__contains=param)
     ).order_by('-addtime')
     data = []
     for item in cursor:
         if len(data) >= pageNum:
             break
         data.append(item.toJson())
-    return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+    return HResponse(baseJSON(True, '请求成功', data=data))
 
 
 def getPicList(request):
     try:
-        rp = requests.get(r'http://www.cdut.edu.cn/default.html',timeout=2)
+        rp = requests.get(r'http://www.cdut.edu.cn/default.html', timeout=2)
     except:
-        return HttpResponse(json.dumps(baseJSON(False, '无法连接')), content_type="application/json")
+        return HResponse(baseJSON(False, '无法连接'))
     soup = BeautifulSoup(rp.content, 'html.parser')
     list = soup.find('ul', class_='pic')
     data = []
@@ -272,10 +278,10 @@ def getPicList(request):
         if not str(item).strip():
             continue
         tmp = {}
-        tmp['img'] = r'http://www.cdut.edu.cn/'+item.a.img['src']
+        tmp['img'] = r'http://www.cdut.edu.cn/' + item.a.img['src']
         tmp['target'] = item.a['href']
         data.append(tmp)
-    return HttpResponse(json.dumps(baseJSON(True, '请求成功', data=data)), content_type="application/json")
+    return HResponse(baseJSON(True, '请求成功', data=data))
 
 
 # 获取用户信息，仅供内部调用
@@ -314,6 +320,7 @@ def addOrUpdateUser(request):
         user.save()
         return user.user_id
 
+
 # json模板
 def baseJSON(isTrue, msg, data=None):
     _json = {}
@@ -323,7 +330,12 @@ def baseJSON(isTrue, msg, data=None):
         _json['data'] = data
     else:
         _json['data'] = {}
-    return _json
+    return json.dumps(_json, ensure_ascii=False)
+
+
+def HResponse(str):
+    return HttpResponse(str, content_type='application/json', charset='utf-8')
+
 
 # 推送
 def push(num):
@@ -334,6 +346,6 @@ def push(num):
 
     push = _jpush.create_push()
     push.audience = jpush.all_
-    push.notification = jpush.notification(alert="update: "+str(num))
+    push.notification = jpush.notification(alert="update: " + str(num))
     push.platform = jpush.all_
     push.send()
