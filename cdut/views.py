@@ -109,7 +109,7 @@ def getNewsList(request):
     cursor = Article.objects.order_by('-article_id').filter(**args)
     data = []
     for item in cursor:
-        if len(data) >= _pageNum:
+        if len(data) >= int(_pageNum):
             break
         data.append(item.toJson())
     return HResponse(baseJSON(True, '请求成功', data=data))
@@ -219,7 +219,7 @@ def getCommentList(request):
     cursor = Comment.objects.order_by('-comment_id').filter(**args)
     data = []
     for item in cursor:
-        if len(data) >= _pageNum:
+        if len(data) >= int(_pageNum):
             break
         data.append(item.toJson())
     return HResponse(baseJSON(True, '请求成功', data=data))
@@ -260,7 +260,7 @@ def doSearch(request):
     ).order_by('-addtime')
     data = []
     for item in cursor:
-        if len(data) >= pageNum:
+        if len(data) >= int(pageNum):
             break
         data.append(item.toJson())
     return HResponse(baseJSON(True, '请求成功', data=data))
