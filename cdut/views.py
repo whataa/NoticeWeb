@@ -86,6 +86,7 @@ def getNewsList(request):
     _source = request.GET.get('_source')
     _startId = request.GET.get('_startId')
     _pageNum = request.GET.get('_pageNum')
+    data = []
     # if not _startId:
     #     return HttpResponse(json.dumps(baseJSON(False, '_startId不能为空')), content_type="application/json")
     addOrUpdateUser(request)
@@ -95,9 +96,9 @@ def getNewsList(request):
         type = Type.objects.get(type_id=_type) if _type else None
         source = Source.objects.get(source_id=_source) if _source else None
     except Type.DoesNotExist:
-        return HResponse(baseJSON(False, '_type参数错误'))
+        return HResponse(baseJSON(False, '_type参数错误', data=data))
     except Source.DoesNotExist:
-        return HResponse(baseJSON(False, '_source参数错误'))
+        return HResponse(baseJSON(False, '_source参数错误', data=data))
     args = {}
     if type:
         args['type'] = type
@@ -107,7 +108,6 @@ def getNewsList(request):
         args['article_id__gte'] = int(_startId) - int(_pageNum)
         args['article_id__lte'] = _startId
     cursor = Article.objects.order_by('-article_id').filter(**args)
-    data = []
     for item in cursor:
         if len(data) >= int(_pageNum):
             break
@@ -193,20 +193,21 @@ def getCommentList(request):
     _userId = request.GET.get('_userId')
     _startId = request.GET.get('_startId')
     _pageNum = request.GET.get('_pageNum')
+    data = []
     addOrUpdateUser(request)
     if not _pageNum:
         _pageNum = 10
     if _userId:
         user = getUser(request)
         if not user:
-            return HResponse(baseJSON(False, '没有该用户'))
+            return HResponse(baseJSON(False, '没有该用户', data=data))
     else:
         user = None
     if _articleId:
         try:
             article = Article.objects.get(article_id=_articleId)
         except Article.DoesNotExist:
-            return HResponse(baseJSON(False, '文章已删除'))
+            return HResponse(baseJSON(False, '文章已删除', data=data))
     else:
         article = None
     args = {}
@@ -217,7 +218,6 @@ def getCommentList(request):
     if article:
         args['article_id'] = article.article_id
     cursor = Comment.objects.order_by('-comment_id').filter(**args)
-    data = []
     for item in cursor:
         if len(data) >= int(_pageNum):
             break
@@ -250,15 +250,15 @@ def getHotNews(request):
 def doSearch(request):
     param = request.GET.get('_param')
     pageNum = request.GET.get('_pageNum')
+    data = []
     if not pageNum:
         pageNum = 10
     if not param:
-        return HResponse(baseJSON(False, '条件不能为空'))
+        return HResponse(baseJSON(False, '条件不能为空', data=data))
     addOrUpdateUser(request)
     cursor = Article.objects.filter(
         Q(title__contains=param) | Q(author__contains=param) | Q(addtime__contains=param)
     ).order_by('-addtime')
-    data = []
     for item in cursor:
         if len(data) >= int(pageNum):
             break
@@ -267,13 +267,13 @@ def doSearch(request):
 
 
 def getPicList(request):
+    data = []
     try:
         rp = requests.get(r'http://www.cdut.edu.cn/default.html', timeout=2)
     except:
-        return HResponse(baseJSON(False, '无法连接'))
+        return HResponse(baseJSON(False, '无法连接', data=data))
     soup = BeautifulSoup(rp.content, 'html.parser')
     list = soup.find('ul', class_='pic')
-    data = []
     for item in list:
         if not str(item).strip():
             continue
