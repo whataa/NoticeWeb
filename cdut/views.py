@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from django.db.models import Q
 from django.http.response import HttpResponse
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
 from cdut.models import Article, User, Content, File, Type, Source, Comment, VisitNum
@@ -145,6 +146,26 @@ def getNews(request):
     data['content'] = _content.toJson()
     data['file'] = _file.toJson() if _file else {}
     return HResponse(baseJSON(True, '请求成功', data=data))
+
+
+def getNewsHtml(request):
+    _aid = request.GET.get('_aid')
+    data = {}
+    if not _aid:
+        return HResponse(baseJSON(False, '参数不能为空'))
+    try:
+        _article = Article.objects.get(article_id=_aid)
+    except Article.DoesNotExist:
+        return HResponse(baseJSON(False, '未找到'))
+    try:
+        _content = Content.objects.get(article=_article)
+    except Content.DoesNotExist:
+        return HResponse(baseJSON(False, '文章已删除'))
+    addOrUpdateUser(request)
+    statVisitNum(_aid)
+    result = json.loads(_content.content)
+    _title = _article.title
+    return render(request, 'muban.html', {'title': _title, 'content': result})
 
 
 def statVisitNum(aid):

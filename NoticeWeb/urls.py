@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^comment/list/$',views.getCommentList),
     url(r'^comment/$',views.addComment),
     url(r'^news/$',views.getNews),
+    url(r'^news/html/$',views.getNewsHtml),
     url(r'^news/list/$',views.getNewsList),
     url(r'^news/hot/$',views.getHotNews),
     url(r'^push/$',views.push),
