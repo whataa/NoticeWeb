@@ -40,6 +40,7 @@ class Comment(models.Model):
         item['id'] = self.comment_id
         item['articleId'] = self.article.article_id
         item['userId'] = self.user.user_id
+        item['deviceId'] = self.user.device_id
         item['tool'] = self.tool
         item['datetime'] = json_serial(self.datetime)
         item['message'] = self.message
