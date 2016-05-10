@@ -24,6 +24,7 @@ urlpatterns = [
     url(r'^user/$',views.addOrUpdateUser),
     url(r'^comment/list/$',views.getCommentList),
     url(r'^comment/$',views.addComment),
+    url(r'^news/visit/$',views.getVisitNum),
     url(r'^news/$',views.getNews),
     url(r'^news/html/$',views.getNewsHtml),
     url(r'^news/list/$',views.getNewsList),

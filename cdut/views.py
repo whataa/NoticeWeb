@@ -181,6 +181,24 @@ def statVisitNum(aid):
         visit.save()
 
 
+def getVisitNum(request):
+    _aid = request.GET.get('_aid')
+    data = {}
+    visit = None
+    if not _aid:
+        return HResponse(baseJSON(False, '参数不能为空'))
+    try:
+        _article = Article.objects.get(article_id=_aid)
+    except Article.DoesNotExist:
+        return HResponse(baseJSON(False, '未找到'))
+    try:
+        visit = VisitNum.objects.get(article=_article)
+    except VisitNum.DoesNotExist:
+        pass
+    data['num'] = visit.pv if not visit is None else 0
+    return HResponse(baseJSON(True, '请求成功', data=data))
+
+
 # 添加评论
 @csrf_exempt
 def addComment(request):
