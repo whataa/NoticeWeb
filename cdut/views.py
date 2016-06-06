@@ -4,6 +4,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 import requests
 from bs4 import BeautifulSoup
+from django.db import transaction
 from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import render
@@ -173,9 +174,11 @@ def getNewsHtml(request):
 
 def statVisitNum(aid):
     try:
-        _visit = VisitNum.objects.get(article_id=aid)
-        _visit.pv += 1
-        _visit.save()
+        with transaction.atomic():
+            # 使用select_for_update来保证并发请求同时只有一个请求在处理，其他的请求等待锁释放
+            _visit = VisitNum.objects.select_for_update().get(article_id=aid)
+            _visit.pv += 1
+            _visit.save()
     except VisitNum.DoesNotExist:
         visit = VisitNum(
             pv=1,
@@ -349,9 +352,10 @@ def addOrUpdateUser(request):
     if not deviceId:
         return None
     try:
-        user = User.objects.get(device_id=deviceId)
-        user.save()
-        return user.user_id
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(device_id=deviceId)
+            user.save()
+            return user.user_id
     except User.DoesNotExist:
         args = {}
         args['device_id'] = deviceId
