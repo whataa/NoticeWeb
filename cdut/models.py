@@ -145,7 +145,7 @@ class Content(models.Model):
         item['id'] = self.content_id
         item['content'] = self.content
         try:
-            item['content'] = json.loads(self.content)
+            json.loads(self.content)
         except json.JSONDecodeError:
             item['content'] = self.content.replace('\'','"')
         item['dateTime'] = json_serial(self.datetime)
