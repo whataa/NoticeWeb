@@ -173,7 +173,8 @@ def getNewsHtml(request):
 
 def statVisitNum(aid):
     try:
-        _visit = VisitNum.objects.get(article_id=aid)
+        # 使用select_for_update来保证并发请求同时只有一个请求在处理，其他的请求等待锁释放
+        _visit = VisitNum.objects.select_for_update().get(article_id=aid)
         _visit.pv += 1
         _visit.save()
     except VisitNum.DoesNotExist:
@@ -349,7 +350,7 @@ def addOrUpdateUser(request):
     if not deviceId:
         return None
     try:
-        user = User.objects.get(device_id=deviceId)
+        user = User.objects.select_for_update().get(device_id=deviceId)
         user.save()
         return user.user_id
     except User.DoesNotExist:
