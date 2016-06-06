@@ -163,7 +163,10 @@ def getNewsHtml(request):
         return HResponse(baseJSON(False, '文章已删除'))
     addOrUpdateUser(request)
     statVisitNum(_aid)
-    result = json.loads(_content.content)
+    try:
+        result = json.loads(_content.content)
+    except json.JSONDecodeError:
+        result = json.loads(_content.content.replace('\'','"'))
     _title = _article.title
     return render(request, 'muban.html', {'title': _title, 'content': result})
 

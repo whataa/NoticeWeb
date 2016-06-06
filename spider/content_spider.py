@@ -211,6 +211,7 @@ class CLibSpider(CBase):
                                         self.content.append({'content': subitem.text.strip()})
                             elif str(subitem).startswith('<table'):
                                 self.content.append({'table': str(subitem)})
+            self.content = json.dumps(self.content, ensure_ascii=False)
             return self
 
 
@@ -256,6 +257,7 @@ class CCistSpider(CBase):
                     self.parsecontent(subp)
             elif str(p).startswith('<table'):
                 self.content.append({'table': p})
+        self.content = json.dumps(self.content, ensure_ascii=False)
         return self
 
     def parsecontent(self,p):
